@@ -1,3 +1,3 @@
 import crudAlumnos from "./crudAlumnos";
-
-export { crudAlumnos };
+import CreateAdlumnos from "./CreateAlumnos";
+export { crudAlumnos, CreateAdlumnos };

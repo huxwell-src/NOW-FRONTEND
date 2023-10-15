@@ -1,195 +1,381 @@
-import { useState, useEffect } from "react";
-import Sidebar from "../../Components/Sidebar";
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faTrash, faUserPen } from '@fortawesome/free-solid-svg-icons'
-import { Typography, Button, Checkbox} from "@material-tailwind/react";
-import axios from 'axios'; // Import Axios library
+import { useState, useEffect } from 'react';
+import axios from 'axios';
+import Sidebar from '../../Components/Sidebar';
+import {
+  Typography,
+  Input,
+  Card,
+  CardBody,
+  CardFooter,
+  Button
+} from "@material-tailwind/react";
+import { Modal } from '../../Components/Modal';
+import { faPlus, faTrash, faUserPen } from "@fortawesome/free-solid-svg-icons";
+import { Toaster, toast } from 'sonner'
 
-function CrudAdlumnos() {
-  const perPage = 10; // Cantidad de usuarios por página
-  const [currentPage, setCurrentPage] = useState(1);
-  const [usersData, setUsersData] = useState([]); // State to hold user data
+function CrudAlumnos() {
+  const [alumnos, setAlumnos] = useState([]);
+  const [newAlumno, setNewAlumno] = useState({
+    rut: '',
+    nombre: '',
+    apellido: '',
+    carrera: '',
+    curso: '',
+    email: '',
+    carrrera: '',
+  });
+  const [editingAlumno, setEditingAlumno] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false); // Nuevo estado para controlar el modal
+
+  const fetchAlumnos = async () => {
+    try {
+      const response = await axios.get('http://localhost:8000/api/v1/Alumno/');
+      setAlumnos(response.data);
+    } catch (error) {
+      console.error('Error al cargar alumnos: ', error);
+    }
+  };
+
+  const createAlumno = async () => {
+    try {
+      await axios.post('http://localhost:8000/api/v1/Alumno/', newAlumno);
+      fetchAlumnos();
+      setNewAlumno({
+        rut: '',
+        nombre: '',
+        apellido: '',
+        carrera: '',
+        curso: '',
+        email: '',
+        carrrera: '',
+      });
+      toast.success('Alumno creado correctamente')
+    } catch (error) {
+      console.error('Error al crear alumno: ', error);
+      toast.error('Error al crear alumno')
+    }
+  };
+
+  const deleteAlumno = async (rut) => {
+    try {
+      await axios.delete(`http://localhost:8000/api/v1/Alumno/${rut}/`);
+      setIsModalOpen(true);
+      setIsEditing(false);
+      fetchAlumnos();
+      toast.success('Alumno eliminado correctamente')
+
+    } catch (error) {
+      console.error('Error al eliminar alumno: ', error);
+    }
+  };
+
+  const editAlumno = (alumno) => {
+    setEditingAlumno(alumno);
+    setIsEditing(true);
+    setIsModalOpen(true);
+  };
+
+  const saveEdits = async () => {
+    try {
+      await axios.put(`http://localhost:8000/api/v1/Alumno/${editingAlumno.rut}/`, editingAlumno);
+      setIsEditing(false);
+      setIsModalOpen(false); // Cierra el modal después de guardar cambios
+      fetchAlumnos();
+      toast.success('Alumno guardado correctamente')
+
+    } catch (error) {
+      console.error('Error al editar alumno: ', error);
+      toast.error('Error al guardar alumno')
+    }
+  };
+
+  const cancelEdit = () => {
+    setIsEditing(false);
+    setIsModalOpen(false); // Cierra el modal al cancelar la edición
+  };
 
   useEffect(() => {
-    // Function to fetch data from the API
-    const fetchData = async () => {
-      try {
-        const response = await axios.get('http://127.0.0.1:8000/api/v1/Alumno/'); // Replace with your API endpoint
-        setUsersData(response.data); // Update the state with API data
-      } catch (error) {
-        console.error('Error fetching data from the API:', error);
-      }
-    };
-
-    fetchData(); // Call the fetchData function when the component mounts
+    fetchAlumnos();
   }, []);
 
-  const handlePageChange = (page) => {
-    setCurrentPage(page);
-  };
-
-  // Función para dividir los usuarios en páginas
-  const paginateUsers = () => {
-    const startIndex = (currentPage - 1) * perPage;
-    const endIndex = startIndex + perPage;
-    return usersData.slice(startIndex, endIndex);
-  };
-
-  const paginatedUsers = paginateUsers();
 
   return (
     <>
-
-      <Sidebar />
-      <div className="p-4 mt-12 sm:ml-64">
-        <div>
-          <div className="mt-2 mb-4">
-            <Typography variant="h1" className="font-extrabold">Alumnos</Typography>
-            <Typography className="text-lg " >
-            Aquí podrás ver, editar, eliminar o crear nuevos alumnos según tus
-                necesidades.
-            </Typography>
-          </div>
-          <div className="flex items-center justify-between pb-4 bg-white dark:bg-gray-900">
-            <div>
-            </div>
-            <div className="relative w-full">
-              <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                <svg
-                  className="w-4 h-4 text-gray-500 dark:text-gray-400"
-                  aria-hidden="true"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 20 20"
+      <Toaster richColors position="top-center" />
+      <Sidebar>
+        <div className="p-4 mt-12 sm:ml-64">
+          <div>
+            <div className="mt-2 mb-4">
+              <div>
+                <Typography variant="h1" className="font-extrabold">Alumnos</Typography>
+                <Typography className="text-lg " >
+                  Aquí podrás ver, editar, eliminar o crear nuevos alumnos según tus
+                  necesidades.
+                </Typography>
+                <Modal
+                  btnName="Agregar"
+                  btnColor="green"
+                  btnClassName="font-bold px-4 my-4"
+                  icon={faPlus}
+                  tittle="Nuevo Alumno"
+                  cardColor="green"
+                  txtBtnRed="Cerrar"
+                  txtBtnGreen="Crear"
+                  onClickOtro={createAlumno}
                 >
-                  <path
-                    stroke="currentColor"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"
-                  />
-                </svg>
-              </div>
-              <input
-                type="text"
-                id="table-search-users"
-                className="block p-2 pl-10 text-sm text-gray-900 border border-gray-300 rounded-lg  w-full	 bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                placeholder="Buscar"
-              />
-            </div>
-          </div>
-          <div className="flex items-center justify-between pb-4 bg-white dark:bg-gray-900">
-            <div className="flex">
-              <Button color="red" className="flex items-center justify-center "> 
-                <FontAwesomeIcon icon={faTrash} size="xl" className="mr-2" />
-                Eliminar
-            </Button>
-            <Button color="blue" className="flex items-center justify-center "> 
-                <FontAwesomeIcon icon={faTrash} size="xl" className="mr-2" />
-                Eliminar
-            </Button>
-           </div>
-          </div>
-          <div className="relative overflow-x-auto shadow sm:rounded-lg">
-            <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-              <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
-                <tr>
-                  <th scope="col" className="px-6 py-3"></th>
-                  <th scope="col" className="px-6 py-3">
-                    Nombre
-                  </th>
-                  <th scope="col" className="px-6 py-3">
-                    Electivo
-                  </th>
-                  <th scope="col" className="px-6 py-3">
-                    Curso
-                  </th>
-                  <th scope="col" className="px-6 py-3"></th>
-                </tr>
-              </thead>
+                  <div className="mx-auto w-full max-w-[24rem]">
+                    <form className="mb-2 w-80 max-w-screen-lg sm:w-96">
+                      <CardBody className="flex flex-col gap-4">
+                        <Typography variant="h3">Crear Nuevo Alumno</Typography>
+                        <div className="mb-4 flex flex-col gap-6">
+                          <Input
+                            color='blue'
+                            size="lg"
+                            label="Rut"
+                            value={newAlumno.rut}
+                            onChange={(e) => setNewAlumno({ ...newAlumno, rut: e.target.value })}
+                          />
+                          <Input
+                            color='blue'
+                            size="lg"
+                            label="Nombres"
+                            value={newAlumno.nombre}
+                            onChange={(e) => setNewAlumno({ ...newAlumno, nombre: e.target.value })}
+                          />
+                          <Input
+                            color='blue'
+                            size="lg"
+                            label="Apellidos"
+                            value={newAlumno.apellido}
+                            onChange={(e) => setNewAlumno({ ...newAlumno, apellido: e.target.value })}
+                          />
+                          <select
+                            id="carrera"
+                            className="border border-gray-300 rounded-lg py-2 px-3"
+                            value={newAlumno.carrera}
+                            onChange={(e) => setNewAlumno({ ...newAlumno, carrera: e.target.value })}
+                          >
+                            <option disabled selected value="">Electivo</option>
+                            <option className='hover:bg-blue-gray-200' value="Construcción (edificación)">Construcción (edificación)</option>
+                            <option className='hover:bg-blue-gray-200' value="Construcciones Metálicas">Construcciones Metálicas</option>
+                            <option className='hover:bg-blue-gray-200' value="Electricidad">Electricidad</option>
+                          </select>
+                          <select
+                            id="curso"
+                            className="border border-blue-400 rounded-lg py-2 px-3"
+                            value={newAlumno.curso}
+                            onChange={(e) => setNewAlumno({ ...newAlumno, curso: e.target.value })}
+                          >
+                            <option disabled selected value="">Curso</option>
+                            <option value="3 A">3 A</option>
+                            <option value="3 B">3 B</option>
+                            <option value="3 A">3 A</option>
+                            <option value="4 A">4 A</option>
+                            <option value="4 B">4 B</option>
+                            <option value="4 C">4 c</option>
+                          </select>
+                          <Input
+                            color='blue'
+                            size="lg"
+                            label="Email"
+                            value={newAlumno.email}
+                            onChange={(e) => setNewAlumno({ ...newAlumno, email: e.target.value })}
+                          />
+                        </div>
+                      </CardBody>
+                    </form>
+                  </div>
+                </Modal>
+                <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                  <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                    <tr>
+                      <th scope="col" className="px-6 py-3"></th>
+                      <th scope="col" className="px-6 py-3">
+                        Nombre
+                      </th>
+                      <th scope="col" className="px-6 py-3">
+                        Electivo
+                      </th>
+                      <th scope="col" className="px-10 py-3">
+                        Curso
+                      </th>
+                      <th scope="col" >
 
-              <tbody>
-                {paginatedUsers.map((user) => (
-                  <tr
-                    key={user.id}
-                    className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
-                  >
-                    <td className="w-4 p-4">
-                      <div className="flex items-center">
-                      <Checkbox 
-  color="red" 
-  id={`checkbox-table-search-${user.id}`}
-  type="checkbox"
-  className={`w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-red-500 dark:focus:ring-red-600 dark:ring-offset-gray-800 dark:focus:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600 ${currentPage === user.id ? 'hover:bg-red-100 dark:hover:bg-red-600' : ''}`}
-/>
-                        <label
-                          htmlFor={`checkbox-table-search-${user.id}`}
-                          className="sr-only"
+                      </th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {alumnos.map((alumno) => (
+                      <tr
+                        key={alumno.rut}
+                        className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
+                      >
+                        <td className="w-4 p-4">
+                          <div className="flex items-center">
+                            <label
+                              htmlFor={`checkbox-table-search-${alumno.rut}`}
+                              className="sr-only"
+                            >
+                              checkbox
+                            </label>
+                          </div>
+                        </td>
+                        <th
+                          scope="row"
+                          className="flex items-center px-6 py-4 text-gray-900 whitespace-nowrap dark:text-white"
                         >
-                          checkbox
-                        </label>
-                      </div>
-                    </td>
-                    <th
-                      scope="row"
-                      className="flex items-center px-6 py-4 text-gray-900 whitespace-nowrap dark:text-white"
-                    >
-                      {/* 
+                          {/* 
                       <img
                         className="w-10 h-10 rounded-full"
                         src={user.imageUrl}
                         alt={`${user.name} image`}
                       />
                     */}
-                      <div className="pl-3">
-                        <div className="text-base font-semibold">
-                          {user.nombre}
+                          <div className="pl-3">
+                            <div className="text-base font-semibold">
+                              {alumno.nombre}  {alumno.apellido}
+                            </div>
+                            <div className="font-normal text-gray-500">
+                              {alumno.email}
+                            </div>
+                          </div>
+                        </th>
+                        <td className="px-6 py-4">{alumno.carrera}</td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center">{alumno.curso}</div>
+                        </td>
+
+                        <div className="flex justify-center">
+                          <Modal
+                            btnName="Eliminar"
+                            btnColor="red"
+                            btnClassName="font-bold px-4 mx-2 my-4"
+                            icon={faTrash}
+                            tittle="Editar Alumno"
+                            cardColor="green"
+                            txtBtnRed="Cancelar"
+                            txtBtnGreen="Confirmar"
+                            onClickOtro={() => deleteAlumno(alumno.rut)}
+                          >
+                            {isModalOpen && (
+                              <div className="mx-auto w-full max-w-[24rem]">
+                                <form className="mb-2 w-80 max-w-screen-lg sm:w-96">
+                                  <CardBody className="flex flex-col gap-4">
+                                    <Typography variant="h3">Eliminar Alumno</Typography>
+                                    <Typography>Esta seguro de elimar?</Typography>
+                                  </CardBody>
+                                </form>
+                              </div>
+                            )}
+                          </Modal>
+
+                          <Modal
+                            btnName="Editar"
+                            btnColor="green"
+                            btnClassName="font-bold px-4 mx-2 my-4"
+                            icon={faUserPen}
+                            tittle="Editar Alumno"
+                            cardColor="green"
+                            onClick={() => editAlumno(alumno)}
+                            txtBtnRed="Cancelar"
+                            txtBtnGreen="Guardar Cambios"
+                            onClickOtro={() => saveEdits()}
+                            handleOtro={() => cancelEdit()}
+                          >
+                            {isModalOpen && (
+                              <div className="mx-auto w-full max-w-[24rem]">
+                                <form className="mb-2 w-80 max-w-screen-lg sm:w-96">
+                                  <CardBody className="flex flex-col gap-4">
+                                    <Typography variant="h3">Editar Alumno</Typography>
+                                    <div className="mb-4 flex flex-col gap-6">
+                                      <Input
+                                        color="blue"
+                                        size="lg"
+                                        label="Rut"
+                                        disabled
+                                        value={editingAlumno.rut}
+                                        onChange={(e) =>
+                                          setEditingAlumno({ ...editingAlumno, rut: e.target.value })
+                                        }
+                                      />
+                                      <Input
+                                        color="blue"
+                                        size="lg"
+                                        label="Nombre"
+                                        value={editingAlumno.nombre}
+                                        onChange={(e) =>
+                                          setEditingAlumno({ ...editingAlumno, nombre: e.target.value })
+                                        }
+                                      />
+                                      <Input
+                                        color="blue"
+                                        size="lg"
+                                        label="Apellidos"
+                                        value={editingAlumno.apellido}
+                                        onChange={(e) =>
+                                          setEditingAlumno({ ...editingAlumno, apellido: e.target.value })
+                                        }
+                                      />
+                                      <Input
+                                        color="blue"
+                                        size="lg"
+                                        label="Email"
+                                        value={editingAlumno.email}
+                                        onChange={(e) =>
+                                          setEditingAlumno({ ...editingAlumno, email: e.target.value })
+                                        }
+                                      />
+                                      <select
+                                        id="carrera"
+                                        className="border border-gray-300 rounded-lg py-2 px-3"
+                                        value={editingAlumno.carrera}
+                                        onChange={(e) =>
+                                          setEditingAlumno({ ...editingAlumno, carrera: e.target.value })
+                                        }
+                                      >
+                                        <option className='hover:bg-blue-gray-200 ' value="Construcción (edificación)">Construcción (edificación)</option>
+                                        <option className='hover:bg-blue-gray-200 ' value="Construcciones Metálicas">Construcciones Metálicas</option>
+                                        <option className='hover:bg-blue-gray-200 ' value="Electricidad">Electricidad</option>
+                                      </select>
+
+                                      <select
+                                        id="curso"
+                                        className="border border-blue-400 rounded-lg py-2 px-3"
+                                        value={editingAlumno.curso}
+                                        onChange={(e) =>
+                                          setEditingAlumno({ ...editingAlumno, curso: e.target.value })
+                                        }
+                                      >
+                                        <option value="3 A">3 A</option>
+                                        <option value="3 B">3 B</option>
+                                        <option value="3 A">3 A</option>
+                                        <option value="4 A">4 A</option>
+                                        <option value="4 B">4 B</option>
+                                        <option value="4 C">4 c</option>
+
+                                        {/* Agrega más opciones según tus necesidades */}
+                                      </select>
+                                      {/* Resto de tus campos de edición */}
+                                    </div>
+                                  </CardBody>
+                                </form>
+                              </div>
+                            )}
+                          </Modal>
                         </div>
-                        <div className="font-normal text-gray-500">
-                          {user.email}
-                        </div>
-                      </div>
-                    </th>
-                    <td className="px-6 py-4">{user.carrera}</td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center">{user.curso}</div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <button color="white"
-                        className="font-medium text-blue-600 dark:text-blue-500 hover:underline"
-                      >
-                       <FontAwesomeIcon icon={faUserPen} size="xl" className="mr-2 duration-200 hover:scale-110 active:scale-90" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {usersData.length > perPage && (
-            <div className="flex justify-center mt-4">
-              {[...Array(Math.ceil(usersData.length / perPage))].map(
-                (_, index) => (
-                  <Button
-                    key={index}
-                    onClick={() => handlePageChange(index + 1)}
-                    className={`px-4 py-2 mx-2 text-sm duration-300 rounded-lg ${
-                      currentPage === index + 1
-                        ? "bg-blue-500 text-white"
-                        : "bg-white shadow-none font-bold text-gray-500 hover:bg-gray-100"
-                    }`}
-                  >
-                    {index + 1}
-                  </Button>
-                ),
-              )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          )}
+          </div>
         </div>
-      </div>
+      </Sidebar>
     </>
   );
 }
 
-export default CrudAdlumnos;
+export default CrudAlumnos;

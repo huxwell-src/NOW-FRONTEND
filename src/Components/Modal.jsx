@@ -1,47 +1,69 @@
-import React, { useState } from 'react';
-import Modal from 'react-modal';
+import React, { useState } from "react";
+import { Button, Dialog, Card, CardHeader, Typography, CardFooter } from "@material-tailwind/react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faCross } from "@fortawesome/free-solid-svg-icons";
 
-// Establece la referencia de la raíz de tu aplicación para el modal
-Modal.setAppElement('#root');
+export function Modal({
+  btnName,
+  btnColor,
+  btnClassName,
+  tittle,
+  cardColor,
+  children,
+  icon,
+  onClick,
+  onClickOtro,
+  txtBtnGreen,
+  txtBtnRed,
+  handleOtro
+}) {
+  // Utiliza el hook useState para gestionar el estado 'open'
+  const [open, setOpen] = useState(false);
 
-function ModalForm({ isOpen, onRequestClose, onSubmit, formContent }) {
-  const [formData, setFormData] = useState({});
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    onSubmit(formData);
-    onRequestClose();
+  // Función para abrir el modal
+  const handleOpen = () => {
+    setOpen((cur) => !cur); // Invierte el estado 'open'
+    if (onClick) {
+      onClick();
+    }
   };
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+  // Función para cerrar el modal
+  const handleExit = () => {
+    setOpen(false);
   };
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onRequestClose={onRequestClose}
-      contentLabel="Formulario Modal"
-    >
-      <h2>Formulario Modal</h2>
-      <form onSubmit={handleSubmit}>
-        {formContent.map((field, index) => (
-          <div key={index}>
-            <label htmlFor={field.name}>{field.label}</label>
-            <input
-              type={field.type}
-              id={field.name}
-              name={field.name}
-              value={formData[field.name] || ''}
-              onChange={handleChange}
-            />
-          </div>
-        ))}
-        <button type="submit">Enviar</button>
-      </form>
-    </Modal>
+    <>
+      {/* Botón para abrir el modal */}
+      <Button onClick={handleOpen} color={btnColor} className={btnClassName}>
+        {icon && <FontAwesomeIcon icon={icon} size="xl" className="mr-2" />}
+        {btnName}
+      </Button>
+
+      {/* Modal */}
+      <Dialog size="sm" open={open} handler={handleOpen} className="bg-transparent shadow-none relative">
+        <Card className="mx-auto w-full max-w-[24rem]">
+          <CardHeader variant="gradient" color={cardColor} className="mb-4 grid h-20 place-items-center">
+            <Typography variant="h3" color="white">
+              {tittle}
+            </Typography>
+          </CardHeader>
+          {children}
+          <CardFooter>
+            <div className="flex justify-around">
+              {/* Botón rojo para cerrar el modal y ejecutar 'handleOtro' */}
+              <Button onClick={() => { handleExit(); handleOtro(); }} color="red">
+                {txtBtnRed}
+              </Button>
+              {/* Botón verde para ejecutar 'onClickOtro' y cerrar el modal */}
+              <Button color="green" onClick={() => { onClickOtro(); handleExit(); }}>
+                {txtBtnGreen}
+              </Button>
+            </div>
+          </CardFooter>
+        </Card>
+      </Dialog>
+    </>
   );
 }
-
-export default ModalForm;
